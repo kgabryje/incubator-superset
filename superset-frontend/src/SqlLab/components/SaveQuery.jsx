@@ -83,7 +83,10 @@ class SaveQuery extends React.PureComponent {
     if (this.saveModal) this.saveModal.close();
   }
   toggleSave(e) {
-    this.setState({ target: e.target, showSave: !this.state.showSave });
+    this.setState(prevState => ({
+      target: e.target,
+      showSave: !prevState.showSave,
+    }));
   }
   renderModalBody() {
     const isSaved = !!this.props.query.remoteId;

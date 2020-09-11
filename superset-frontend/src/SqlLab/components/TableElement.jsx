@@ -84,7 +84,7 @@ class TableElement extends React.PureComponent {
     this.props.actions.removeDataPreview(this.props.table);
   }
   toggleSortColumns() {
-    this.setState({ sortColumns: !this.state.sortColumns });
+    this.setState(prevState => ({ sortColumns: !prevState.sortColumns }));
   }
 
   removeFromStore() {

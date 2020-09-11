@@ -270,7 +270,7 @@ class TabbedSqlEditors extends React.PureComponent {
     this.props.actions.cloneQueryToNewTab(qe, false);
   }
   toggleLeftBar() {
-    this.setState({ hideLeftBar: !this.state.hideLeftBar });
+    this.setState(prevState => ({ hideLeftBar: !prevState.hideLeftBar }));
   }
   render() {
     const editors = this.props.queryEditors.map((qe, i) => {
