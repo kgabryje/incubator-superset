@@ -145,6 +145,7 @@ export default class EmbedCodeButton extends React.Component {
       </Popover>
     );
   }
+
   render() {
     return (
       <OverlayTrigger

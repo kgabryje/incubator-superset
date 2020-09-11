@@ -229,10 +229,15 @@ export default class FilterableTable extends PureComponent<
   }
 
   list: List<Datum>;
+
   complexColumns: Record<string, boolean>;
+
   widthsForColumnsByKey: Record<string, number>;
+
   totalTableWidth: number;
+
   totalTableHeight: number;
+
   container: React.RefObject<HTMLDivElement>;
 
   formatTableData(data: Record<string, unknown>[]): Datum[] {
