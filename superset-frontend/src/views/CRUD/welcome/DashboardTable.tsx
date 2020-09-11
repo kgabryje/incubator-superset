@@ -40,11 +40,14 @@ class DashboardTable extends React.PureComponent<
   DashboardTableProps,
   DashboardTableState
 > {
-  state = {
-    dashboards: [],
-    dashboard_count: 0,
-    loading: false,
-  };
+  constructor(props: DashboardTableProps) {
+    super(props);
+    this.state = {
+      dashboards: [],
+      dashboard_count: 0,
+      loading: false,
+    };
+  }
 
   componentDidUpdate(prevProps: DashboardTableProps) {
     if (prevProps.search !== this.props.search) {
