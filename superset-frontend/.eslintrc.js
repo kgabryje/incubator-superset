@@ -60,7 +60,6 @@ module.exports = {
         '@typescript-eslint/no-explicit-any': 0,
         '@typescript-eslint/no-non-null-assertion': 0,
         '@typescript-eslint/no-use-before-define': 1,
-        '@typescript-eslint/no-unused-vars': 0,
         '@typescript-eslint/explicit-function-return-type': 0,
         '@typescript-eslint/explicit-module-boundary-types': 0,
         camelcase: 0,

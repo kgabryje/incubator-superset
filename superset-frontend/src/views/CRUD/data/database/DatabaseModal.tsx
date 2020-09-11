@@ -74,8 +74,6 @@ const StyledInputContainer = styled.div`
 `;
 
 const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
-  addDangerToast,
-  addSuccessToast,
   onDatabaseAdd,
   onHide,
   show,
