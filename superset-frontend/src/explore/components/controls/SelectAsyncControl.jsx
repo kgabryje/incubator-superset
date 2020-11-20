@@ -82,7 +82,7 @@ const SelectAsyncControl = props => {
         multi={multi}
         value={value}
         placeholder={placeholder}
-        valueRenderer={v => <div>{v.label}</div>}
+        valueRenderer={v => <div>{v.label ?? v}</div>}
       />
     </div>
   );
