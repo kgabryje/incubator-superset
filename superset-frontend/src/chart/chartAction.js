@@ -434,8 +434,8 @@ export function exploreJSON(
           const {
             extraFilters,
             filters,
-            lineCharts,
-            lineCharts2,
+            line_charts: lineCharts,
+            line_charts_2: lineCharts2,
             prefixMetricWithSliceName,
             timeRange,
           } = formData;
@@ -457,14 +457,13 @@ export function exploreJSON(
 
             return SupersetClient.get({
               endpoint: getExploreLongUrl(combinedFormData, 'json'),
-            }).then(
-              data => data,
-              // data.map(({ key, values }) => ({
-              //   key: addPrefix ? `${subslice.slice_name}: ${key}` : key,
-              //   type: combinedFormData.viz_type,
-              //   values,
-              //   yAxis,
-              // })),
+            }).then(data =>
+              data.json.data.map(({ key, values }) => ({
+                key: addPrefix ? `${subslice.slice_name}: ${key}` : key,
+                type: combinedFormData.viz_type,
+                values,
+                yAxis,
+              })),
             );
           });
           return Promise.all(promises).then(data => {
@@ -486,7 +485,7 @@ export function exploreJSON(
                 datum.values.push({ x: maxX, y: null });
               });
             }
-            return dispatch(chartUpdateSucceeded(queryDataCopy, key));
+            return dispatch(chartUpdateSucceeded([queryDataCopy], key));
           });
         } else {
           queriesResponse.forEach(resultItem =>
