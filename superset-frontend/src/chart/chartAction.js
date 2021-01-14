@@ -20,6 +20,7 @@
 /* eslint no-param-reassign: ["error", { "props": false }] */
 import moment from 'moment';
 import { t, SupersetClient } from '@superset-ui/core';
+import URI from 'urijs';
 import { getControlsState } from 'src/explore/store';
 import { isFeatureEnabled, FeatureFlag } from '../featureFlags';
 import {
@@ -41,6 +42,7 @@ import { logEvent } from '../logger/actions';
 import { Logger, LOG_ACTIONS_LOAD_CHART } from '../logger/LogUtils';
 import { getClientErrorObject } from '../utils/getClientErrorObject';
 import { allowCrossDomain as domainShardingEnabled } from '../utils/hostNamesConfig';
+import { safeStringify } from '../utils/safeStringify';
 
 export const CHART_UPDATE_STARTED = 'CHART_UPDATE_STARTED';
 export function chartUpdateStarted(queryController, latestQueryFormData, key) {
@@ -343,6 +345,53 @@ export function addChart(chart, key) {
   return { type: ADD_CHART, chart, key };
 }
 
+const MAX_URL_LENGTH = 8000;
+
+export function getURIDirectory(formData, endpointType = 'base') {
+  // Building the directory part of the URI
+  let directory = '/superset/explore/';
+  if (['json', 'csv', 'query', 'results', 'samples'].includes(endpointType)) {
+    directory = '/superset/explore_json/';
+  }
+
+  return directory;
+}
+
+export function getExploreLongUrl(
+  formData,
+  endpointType,
+  allowOverflow = true,
+  extraSearch = {},
+) {
+  if (!formData.datasource) {
+    return null;
+  }
+
+  const uri = new URI('/');
+  const directory = getURIDirectory(formData, endpointType);
+  const search = uri.search(true);
+  Object.keys(extraSearch).forEach(key => {
+    search[key] = extraSearch[key];
+  });
+  search.form_data = safeStringify(formData);
+  if (endpointType === 'standalone') {
+    search.standalone = 'true';
+  }
+  const url = uri.directory(directory).search(search).toString();
+  if (!allowOverflow && url.length > MAX_URL_LENGTH) {
+    const minimalFormData = {
+      datasource: formData.datasource,
+      viz_type: formData.viz_type,
+    };
+
+    return getExploreLongUrl(minimalFormData, endpointType, false, {
+      URL_IS_TOO_LONG_TO_SHARE: null,
+    });
+  }
+
+  return url;
+}
+
 export function exploreJSON(
   formData,
   force = false,
@@ -361,6 +410,7 @@ export function exploreJSON(
     };
     if (dashboardId) requestParams.dashboard_id = dashboardId;
 
+    debugger;
     const chartDataRequest = getChartDataRequest({
       formData,
       resultFormat: 'json',
@@ -380,29 +430,88 @@ export function exploreJSON(
           const result = 'result' in response ? response.result[0] : response;
           return dispatch(chartUpdateQueued(result, key));
         }
+        if (formData.viz_type === 'line_multi') {
+          const {
+            extraFilters,
+            filters,
+            lineCharts,
+            lineCharts2,
+            prefixMetricWithSliceName,
+            timeRange,
+          } = formData;
+          const { slices } = queriesResponse[0].data;
+          const subslices = [
+            ...slices.axis1.map(subslice => [1, subslice]),
+            ...slices.axis2.map(subslice => [2, subslice]),
+          ];
 
-        queriesResponse.forEach(resultItem =>
-          dispatch(
-            logEvent(LOG_ACTIONS_LOAD_CHART, {
-              slice_id: key,
-              applied_filters: resultItem.applied_filters,
-              is_cached: resultItem.is_cached,
-              force_refresh: force,
-              row_count: resultItem.rowcount,
-              datasource: formData.datasource,
-              start_offset: logStart,
-              ts: new Date().getTime(),
-              duration: Logger.getTimestamp() - logStart,
-              has_extra_filters:
-                formData.extra_filters && formData.extra_filters.length > 0,
-              viz_type: formData.viz_type,
-              data_age: resultItem.is_cached
-                ? moment(new Date()).diff(moment.utc(resultItem.cached_dttm))
-                : null,
-            }),
-          ),
-        );
-        return dispatch(chartUpdateSucceeded(queriesResponse, key));
+          const promises = subslices.map(([yAxis, subslice]) => {
+            const subsliceFormData = subslice.form_data;
+            const combinedFormData = {
+              ...subslice.form_data,
+              extra_filters: extraFilters || [],
+              filters: (subsliceFormData.filters || []).concat(filters || []),
+              time_range: timeRange,
+            };
+            const addPrefix = prefixMetricWithSliceName;
+
+            return SupersetClient.get({
+              endpoint: getExploreLongUrl(combinedFormData, 'json'),
+            }).then(
+              data => data,
+              // data.map(({ key, values }) => ({
+              //   key: addPrefix ? `${subslice.slice_name}: ${key}` : key,
+              //   type: combinedFormData.viz_type,
+              //   values,
+              //   yAxis,
+              // })),
+            );
+          });
+          return Promise.all(promises).then(data => {
+            const queryDataCopy = { ...queriesResponse[0] };
+            queryDataCopy.data = [].concat(...data);
+
+            // add null values at the edges to fix multiChart bug when series with
+            // different x values use different y axes
+            if (lineCharts.length > 0 && lineCharts2.length > 0) {
+              let minX = Infinity;
+              let maxX = -Infinity;
+              queryDataCopy.data.forEach(datum => {
+                minX = Math.min(minX, ...datum.values.map(v => v.x));
+                maxX = Math.max(maxX, ...datum.values.map(v => v.x));
+              });
+              // add null values at the edges
+              queryDataCopy.data.forEach(datum => {
+                datum.values.push({ x: minX, y: null });
+                datum.values.push({ x: maxX, y: null });
+              });
+            }
+            return dispatch(chartUpdateSucceeded(queryDataCopy, key));
+          });
+        } else {
+          queriesResponse.forEach(resultItem =>
+            dispatch(
+              logEvent(LOG_ACTIONS_LOAD_CHART, {
+                slice_id: key,
+                applied_filters: resultItem.applied_filters,
+                is_cached: resultItem.is_cached,
+                force_refresh: force,
+                row_count: resultItem.rowcount,
+                datasource: formData.datasource,
+                start_offset: logStart,
+                ts: new Date().getTime(),
+                duration: Logger.getTimestamp() - logStart,
+                has_extra_filters:
+                  formData.extra_filters && formData.extra_filters.length > 0,
+                viz_type: formData.viz_type,
+                data_age: resultItem.is_cached
+                  ? moment(new Date()).diff(moment.utc(resultItem.cached_dttm))
+                  : null,
+              }),
+            ),
+          );
+          return dispatch(chartUpdateSucceeded(queriesResponse, key));
+        }
       })
       .catch(response => {
         const appendErrorLog = (errorDetails, isCached) => {
