@@ -17,4 +17,3 @@
  * under the License.
  */
 export * from './optionSelector';
-export * from './isColumnMeta';

@@ -18,7 +18,13 @@
  */
 /* eslint-disable camelcase */
 import React, { useCallback, useMemo, useState } from 'react';
-import { AdhocColumn, t, styled } from '@superset-ui/core';
+import {
+  AdhocColumn,
+  isAdhocColumn,
+  isSavedExpression,
+  t,
+  styled,
+} from '@superset-ui/core';
 import { ColumnMeta } from '@superset-ui/chart-controls';
 import Tabs from 'src/components/Tabs';
 import Button from 'src/components/Button';
@@ -56,10 +62,10 @@ const ColumnSelectPopover = ({
     AdhocColumn?,
     ColumnMeta?,
     ColumnMeta?,
-  ] = (editedColumn as AdhocColumn)?.sqlExpression
-    ? [editedColumn as AdhocColumn, undefined, undefined]
-    : (editedColumn as ColumnMeta)?.expression
-    ? [undefined, editedColumn as ColumnMeta, undefined]
+  ] = isAdhocColumn(editedColumn)
+    ? [editedColumn, undefined, undefined]
+    : isSavedExpression(editedColumn)
+    ? [undefined, editedColumn, undefined]
     : [undefined, undefined, editedColumn as ColumnMeta];
   const [adhocColumn, setAdhocColumn] = useState<AdhocColumn | undefined>(
     initialAdhocColumn,

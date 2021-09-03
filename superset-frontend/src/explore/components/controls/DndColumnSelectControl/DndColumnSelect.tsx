@@ -23,15 +23,13 @@ import {
   isFeatureEnabled,
   tn,
   QueryFormColumn,
+  isColumnMeta,
 } from '@superset-ui/core';
 import { ColumnMeta } from '@superset-ui/chart-controls';
 import { isEmpty } from 'lodash';
 import DndSelectLabel from 'src/explore/components/controls/DndColumnSelectControl/DndSelectLabel';
 import OptionWrapper from 'src/explore/components/controls/DndColumnSelectControl/OptionWrapper';
-import {
-  isColumnMeta,
-  OptionSelector,
-} from 'src/explore/components/controls/DndColumnSelectControl/utils';
+import { OptionSelector } from 'src/explore/components/controls/DndColumnSelectControl/utils';
 import { DatasourcePanelDndItem } from 'src/explore/components/DatasourcePanel/types';
 import { DndItemType } from 'src/explore/components/DndItemType';
 import { useComponentDidUpdate } from 'src/common/hooks/useComponentDidUpdate';

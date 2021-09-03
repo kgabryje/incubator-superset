@@ -22,8 +22,8 @@ import {
   ensureIsArray,
   QueryFormColumn,
   isPhysicalColumn,
+  isColumnMeta,
 } from '@superset-ui/core';
-import { isColumnMeta } from './isColumnMeta';
 
 const getColumnNameOrAdhocColumn = (
   column: ColumnMeta | AdhocColumn,
