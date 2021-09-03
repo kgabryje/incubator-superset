@@ -135,14 +135,20 @@ export default function OptionWrapper(
     );
   };
 
-  const ColumnOption = () => (
-    <StyledColumnOption
-      column={column as ColumnMeta}
-      labelRef={labelRef}
-      showTooltip={!!shouldShowTooltip}
-      showType
-    />
-  );
+  const ColumnOption = () => {
+    const transformedCol =
+      column && 'label' in column
+        ? { verbose_name: column.label, expression: column.sqlExpression }
+        : column;
+    return (
+      <StyledColumnOption
+        column={transformedCol as ColumnMeta}
+        labelRef={labelRef}
+        showTooltip={!!shouldShowTooltip}
+        showType
+      />
+    );
+  };
 
   const Label = () => {
     if (label) {

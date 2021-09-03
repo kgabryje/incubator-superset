@@ -16,5 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export * from './optionSelector';
-export * from './isColumnMeta';
+import { ColumnMeta } from '@superset-ui/chart-controls';
+import { AdhocColumn } from '@superset-ui/core';
+
+export const isColumnMeta = (
+  column: AdhocColumn | ColumnMeta,
+): column is ColumnMeta => 'column_name' in column;
