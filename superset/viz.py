@@ -283,6 +283,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
                 timestamp_format=timestamp_format,
                 offset=self.datasource.offset,
                 time_shift=self.time_shift,
+                datasource=self.datasource,
             )
 
             if self.enforce_numerical_metrics:

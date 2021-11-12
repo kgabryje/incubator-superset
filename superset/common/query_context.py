@@ -233,6 +233,7 @@ class QueryContext:
             timestamp_format=timestamp_format,
             offset=self.datasource.offset,
             time_shift=query_object.time_shift,
+            datasource=self.datasource,
         )
 
         if self.enforce_numerical_metrics:

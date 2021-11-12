@@ -1695,28 +1695,31 @@ def normalize_dttm_col(
     timestamp_format: Optional[str],
     offset: int,
     time_shift: Optional[timedelta],
+    datasource: "BaseDatasource",
 ) -> None:
-    if DTTM_ALIAS not in df.columns:
-        return
-    if timestamp_format in ("epoch_s", "epoch_ms"):
-        dttm_col = df[DTTM_ALIAS]
-        if is_numeric_dtype(dttm_col):
-            # Column is formatted as a numeric value
-            unit = timestamp_format.replace("epoch_", "")
-            df[DTTM_ALIAS] = pd.to_datetime(
-                dttm_col, utc=False, unit=unit, origin="unix"
-            )
-        else:
-            # Column has already been formatted as a timestamp.
-            df[DTTM_ALIAS] = dttm_col.apply(pd.Timestamp)
-    else:
-        df[DTTM_ALIAS] = pd.to_datetime(
-            df[DTTM_ALIAS], utc=False, format=timestamp_format
-        )
-    if offset:
-        df[DTTM_ALIAS] += timedelta(hours=offset)
-    if time_shift is not None:
-        df[DTTM_ALIAS] += time_shift
+    columns_by_name = {column.column_name: column for column in datasource.columns}
+    for column_name in df.columns:
+        column_object = columns_by_name.get(column_name)
+        if column_object and column_object.is_dttm:
+            if timestamp_format in ("epoch_s", "epoch_ms"):
+                dttm_col = df[column_name]
+                if is_numeric_dtype(dttm_col):
+                    # Column is formatted as a numeric value
+                    unit = timestamp_format.replace("epoch_", "")
+                    df[column_name] = pd.to_datetime(
+                        dttm_col, utc=False, unit=unit, origin="unix"
+                    )
+                else:
+                    # Column has already been formatted as a timestamp.
+                    df[column_name] = dttm_col.apply(pd.Timestamp)
+            else:
+                df[column_name] = pd.to_datetime(
+                    df[column_name], utc=False, format=timestamp_format
+                )
+            if offset:
+                df[column_name] += timedelta(hours=offset)
+            if time_shift is not None:
+                df[column_name] += time_shift
 
 
 def parse_boolean_string(bool_str: Optional[str]) -> bool:
