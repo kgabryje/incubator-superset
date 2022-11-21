@@ -3,7 +3,7 @@ entries:
   superset:
   - apiVersion: v2
     appVersion: "1.0"
-    created: "2022-10-31T11:50:08.503673116Z"
+    created: "2022-11-21T15:18:46.027456692Z"
     dependencies:
     - condition: postgresql.enabled
       name: postgresql
@@ -15,7 +15,7 @@ entries:
       version: 16.3.1
     description: Apache Superset is a modern, enterprise-ready business intelligence
       web application
-    digest: ffa73f71a84df6b82777272e236c629e29be7b97f2da508e7338362dc9e0b866
+    digest: 0b048036ed32f8d595cc110aa5d86988bdd7be956dd392363403a815c4a620a4
     home: https://superset.apache.org/
     icon: https://artifacthub.io/image/68c1d717-0e97-491f-b046-754e46f46922@2x
     keywords:
@@ -29,6 +29,6 @@ entries:
     sources:
     - https://github.com/apache/superset
     urls:
-    - https://github.com/kgabryje/incubator-superset/releases/download/superset-helm-chart-0.7.6/superset-0.7.6.tgz
-    version: 0.7.6
-generated: "2022-10-31T11:50:08.503684116Z"
+    - https://github.com/kgabryje/incubator-superset/releases/download/superset-helm-chart-0.7.7/superset-0.7.7.tgz
+    version: 0.7.7
+generated: "2022-11-21T15:18:46.027734389Z"
