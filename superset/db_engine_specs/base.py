@@ -158,6 +158,8 @@ class MetricType(TypedDict, total=False):
     metric_type: str | None
     description: str | None
     d3format: str | None
+    currency: str | None
+    currency_symbol_position: str | None
     warning_text: str | None
     extra: str | None
 

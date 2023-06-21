@@ -171,6 +171,8 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "metrics.changed_on",
         "metrics.created_on",
         "metrics.d3format",
+        "metrics.currency",
+        "metrics.currency_symbol_position",
         "metrics.description",
         "metrics.expression",
         "metrics.extra",

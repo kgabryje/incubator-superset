@@ -63,6 +63,11 @@ class DatasetColumnsPutSchema(Schema):
     uuid = fields.UUID(allow_none=True)
 
 
+class CurrencySchema(Schema):
+    symbolPosition = fields.String()
+    currency = fields.String()
+
+
 class DatasetMetricsPutSchema(Schema):
     id = fields.Integer()
     expression = fields.String(required=True)
@@ -71,6 +76,8 @@ class DatasetMetricsPutSchema(Schema):
     metric_name = fields.String(required=True, validate=Length(1, 255))
     metric_type = fields.String(allow_none=True, validate=Length(1, 32))
     d3format = fields.String(allow_none=True, validate=Length(1, 128))
+    currency = fields.String(allow_none=True, required=False)
+    currency_symbol_position = fields.String(allow_none=True, required=False)
     verbose_name = fields.String(allow_none=True, metadata={Length: (1, 1024)})
     warning_text = fields.String(allow_none=True)
     uuid = fields.UUID(allow_none=True)
@@ -191,6 +198,9 @@ class ImportV1MetricSchema(Schema):
     expression = fields.String(required=True)
     description = fields.String(allow_none=True)
     d3format = fields.String(allow_none=True)
+    currency = fields.String(allow_none=True, required=False)
+    currency_symbol_position = fields.String(allow_none=True, required=False)
+    # currency_format = fields.Dict(allow_none=True, required=False)
     extra = fields.Dict(allow_none=True)
     warning_text = fields.String(allow_none=True)
 

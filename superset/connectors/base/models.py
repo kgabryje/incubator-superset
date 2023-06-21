@@ -710,6 +710,8 @@ class BaseMetric(AuditMixinNullable, ImportExportMixin):
     metric_type = Column(String(32))
     description = Column(MediumText())
     d3format = Column(String(128))
+    currency = Column(String(128))
+    currency_symbol_position = Column(String(128))
     warning_text = Column(Text)
 
     """
@@ -744,5 +746,7 @@ class BaseMetric(AuditMixinNullable, ImportExportMixin):
             "expression",
             "warning_text",
             "d3format",
+            "currency",
+            "currency_symbol_position",
         )
         return {s: getattr(self, s) for s in attrs}

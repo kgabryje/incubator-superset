@@ -416,6 +416,8 @@ class SqlMetric(Model, BaseMetric, CertificationMixin):
         "expression",
         "description",
         "d3format",
+        "currency",
+        "currency_symbol_position",
         "extra",
         "warning_text",
     ]
