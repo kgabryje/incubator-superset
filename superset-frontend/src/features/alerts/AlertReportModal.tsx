@@ -64,6 +64,7 @@ import { useSelector } from 'react-redux';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
 import { NotificationMethod } from './components/NotificationMethod';
+import { SingleReportSection } from './SingleReportSection';
 
 const TIMEOUT_MIN = 1;
 const TEXT_BASED_VISUALIZATION_TYPES = [
@@ -91,8 +92,10 @@ const DEFAULT_WORKING_TIMEOUT = 3600;
 const DEFAULT_CRON_VALUE = '0 * * * *'; // every hour
 const DEFAULT_RETENTION = 90;
 
-const DEFAULT_NOTIFICATION_METHODS: NotificationMethodOption[] = ['Email'];
-const DEFAULT_NOTIFICATION_FORMAT = 'PNG';
+export const DEFAULT_NOTIFICATION_METHODS: NotificationMethodOption[] = [
+  'Email',
+];
+export const DEFAULT_NOTIFICATION_FORMAT = 'PNG';
 const CONDITIONS = [
   {
     label: t('< (Smaller than)'),
@@ -227,7 +230,7 @@ const StyledSectionContainer = styled.div`
   }
 `;
 
-const StyledSectionTitle = styled.div`
+export const StyledSectionTitle = styled.div`
   display: flex;
   align-items: center;
   margin: ${({ theme }) => theme.gridUnit * 2}px auto
@@ -452,7 +455,7 @@ const NotificationMethodAdd: FunctionComponent<NotificationMethodAddProps> = ({
   );
 };
 
-type NotificationSetting = {
+export type NotificationSetting = {
   method?: NotificationMethodOption;
   recipients: string;
   options: NotificationMethodOption[];
@@ -1547,6 +1550,14 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               data-test="notification-add"
               status={notificationAddState}
               onClick={onNotificationAdd}
+            />
+            <SingleReportSection
+              notificationSettings={notificationSettings}
+              currentAlert={currentAlert}
+              contentType={contentType}
+              reportFormat={reportFormat}
+              isReport={isReport}
+              forceScreenshot={forceScreenshot}
             />
           </div>
         </div>

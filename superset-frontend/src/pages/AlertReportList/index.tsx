@@ -55,6 +55,7 @@ import AlertReportModal from 'src/features/alerts/AlertReportModal';
 import { AlertObject, AlertState } from 'src/features/alerts/types';
 import { ModifiedInfo } from 'src/components/AuditInfo';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
+import { QuickReportSendModal } from '../../features/alerts/QuickReportSendModal';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -151,6 +152,7 @@ function AlertList({
   );
 
   const [alertModalOpen, setAlertModalOpen] = useState<boolean>(false);
+  const [quickSendModalOpen, setQuickSendModalOpen] = useState<boolean>(false);
   const [currentAlert, setCurrentAlert] = useState<Partial<AlertObject> | null>(
     null,
   );
@@ -162,6 +164,11 @@ function AlertList({
     setCurrentAlert(alert);
     setAlertModalOpen(true);
   }
+
+  const handleQuickSend = (alert: AlertObject | null) => {
+    setCurrentAlert(alert);
+    setQuickSendModalOpen(true);
+  };
 
   const generateKey = () => `${new Date().getTime()}`;
 
@@ -363,6 +370,17 @@ function AlertList({
             isUserAdmin(user);
 
           const actions = [
+            isReportEnabled
+              ? {
+                  label: 'quick-send',
+                  tooltip: t(
+                    'Send report now for immediate access. Choose to send it to yourself for testing, all owners of the report, or to all users listed in the notification method who require it',
+                  ),
+                  placement: 'bottom',
+                  icon: 'SendOutlined',
+                  onClick: () => handleQuickSend(original),
+                }
+              : null,
             canEdit
               ? {
                   label: 'execution-log-action',
@@ -563,6 +581,12 @@ function AlertList({
         isReport={isReportEnabled}
         key={currentAlert?.id || generateKey()}
       />
+      {quickSendModalOpen && (
+        <QuickReportSendModal
+          onHide={() => setQuickSendModalOpen(false)}
+          alertId={currentAlert?.id || 0}
+        />
+      )}
       {currentAlertDeleting && (
         <DeleteModal
           description={t(
