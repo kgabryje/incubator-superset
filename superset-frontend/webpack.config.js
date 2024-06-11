@@ -402,6 +402,16 @@ const config = {
         use: ['react-hot-loader/webpack'],
       },
       {
+        test: /\.m?js$/,
+        type: 'javascript/auto',
+      },
+      {
+        test: /\.m?js$/,
+        resolve: {
+          fullySpecified: false,
+        },
+      },
+      {
         test: /\.css$/,
         include: [APP_DIR, /superset-ui.+\/src/],
         use: [
