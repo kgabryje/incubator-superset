@@ -244,7 +244,6 @@ def loads(
         return simplejson.loads(
             obj,
             encoding=encoding,
-            allow_nan=allow_nan,
             object_hook=object_hook,
         )
     except JSONDecodeError as ex:
