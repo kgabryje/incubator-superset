@@ -21,13 +21,22 @@ import {
   buildQueryContext,
   ensureIsArray,
   getMetricLabel,
+  getTimeOffset,
   isPhysicalColumn,
+  parseDttmToDate,
   QueryMode,
   QueryObject,
   removeDuplicates,
+  SimpleAdhocFilter,
 } from '@superset-ui/core';
 import { PostProcessingRule } from '@superset-ui/core/src/query/types/PostProcessing';
 import { BuildQuery } from '@superset-ui/core/src/chart/registries/ChartBuildQueryRegistrySingleton';
+import {
+  isTimeComparison,
+  timeCompareOperator,
+} from '@superset-ui/chart-controls';
+import { isEmpty } from 'lodash';
+import { TableChartFormData } from './types';
 
 /**
  * Infer query mode from form data. If `all_columns` is set, then raw records mode,
@@ -35,7 +44,7 @@ import { BuildQuery } from '@superset-ui/core/src/chart/registries/ChartBuildQue
  *
  * The same logic is used in `controlPanel` with control values as well.
  */
-export function getQueryMode(formData: any) {
+export function getQueryMode(formData: TableChartFormData) {
   const { query_mode: mode } = formData;
   if (mode === QueryMode.Aggregate || mode === QueryMode.Raw) {
     return mode;
@@ -45,7 +54,10 @@ export function getQueryMode(formData: any) {
   return hasRawColumns ? QueryMode.Raw : QueryMode.Aggregate;
 }
 
-const buildQuery: BuildQuery = (formData: any, options) => {
+const buildQuery: BuildQuery<TableChartFormData> = (
+  formData: TableChartFormData,
+  options,
+) => {
   const {
     percent_metrics: percentMetrics,
     order_desc: orderDesc = false,
@@ -64,9 +76,51 @@ const buildQuery: BuildQuery = (formData: any, options) => {
     };
   }
 
+  const addComparisonPercentMetrics = (metrics: string[], suffixes: string[]) =>
+    metrics.reduce<string[]>((acc, metric) => {
+      const newMetrics = suffixes.map(suffix => `${metric}__${suffix}`);
+      return acc.concat([metric, ...newMetrics]);
+    }, []);
+
   return buildQueryContext(formDataCopy, baseQueryObject => {
     let { metrics, orderby = [], columns = [] } = baseQueryObject;
+    const { extras = {} } = baseQueryObject;
     let postProcessing: PostProcessingRule[] = [];
+    const TimeRangeFilters =
+      formData.adhoc_filters?.filter(
+        (filter: SimpleAdhocFilter) => filter.operator === 'TEMPORAL_RANGE',
+      ) || [];
+
+    // In case the viz is using all version of controls, we try to load them
+    const previousCustomTimeRangeFilters: any =
+      formData.adhoc_custom?.filter(
+        (filter: SimpleAdhocFilter) => filter.operator === 'TEMPORAL_RANGE',
+      ) || [];
+
+    let previousCustomStartDate = '';
+    if (
+      !isEmpty(previousCustomTimeRangeFilters) &&
+      previousCustomTimeRangeFilters[0]?.comparator !== 'No Filter'
+    ) {
+      previousCustomStartDate =
+        previousCustomTimeRangeFilters[0]?.comparator.split(' : ')[0];
+    }
+
+    const timeOffsets = ensureIsArray(
+      isTimeComparison(formData, baseQueryObject)
+        ? getTimeOffset({
+            timeRangeFilter: TimeRangeFilters[0],
+            shifts: formData.time_compare,
+            startDate:
+              previousCustomStartDate && !formData.start_date_offset
+                ? parseDttmToDate(previousCustomStartDate)?.toUTCString()
+                : formData.start_date_offset,
+          })
+        : [],
+    );
+
+    let temporalColumAdded = false;
+    let temporalColum = null;
 
     if (queryMode === QueryMode.Aggregate) {
       metrics = metrics || [];
@@ -80,8 +134,17 @@ const buildQuery: BuildQuery = (formData: any, options) => {
       }
       // add postprocessing for percent metrics only when in aggregation mode
       if (percentMetrics && percentMetrics.length > 0) {
+        const percentMetricsLabelsWithTimeComparison = isTimeComparison(
+          formData,
+          baseQueryObject,
+        )
+          ? addComparisonPercentMetrics(
+              percentMetrics.map(getMetricLabel),
+              timeOffsets,
+            )
+          : percentMetrics.map(getMetricLabel);
         const percentMetricLabels = removeDuplicates(
-          percentMetrics.map(getMetricLabel),
+          percentMetricsLabelsWithTimeComparison,
         );
         metrics = removeDuplicates(
           metrics.concat(percentMetrics),
@@ -91,29 +154,44 @@ const buildQuery: BuildQuery = (formData: any, options) => {
           {
             operation: 'contribution',
             options: {
-              columns: percentMetricLabels as any,
+              columns: percentMetricLabels as string[],
               rename_columns: percentMetricLabels.map(x => `%${x}`),
             },
           },
         ];
       }
+      // Add the operator for the time comparison if some is selected
+      if (!isEmpty(timeOffsets)) {
+        postProcessing.push(timeCompareOperator(formData, baseQueryObject));
+      }
 
-      columns = columns.map(col => {
-        if (
+      const temporalColumnsLookup = formData?.temporal_columns_lookup;
+      // Filter out the column if needed and prepare the temporal column object
+
+      columns = columns.filter(col => {
+        const shouldBeAdded =
           isPhysicalColumn(col) &&
           time_grain_sqla &&
-          formData?.temporal_columns_lookup?.[col]
-        ) {
-          return {
+          temporalColumnsLookup?.[col];
+
+        if (shouldBeAdded && !temporalColumAdded) {
+          temporalColum = {
             timeGrain: time_grain_sqla,
             columnType: 'BASE_AXIS',
             sqlExpression: col,
             label: col,
             expressionType: 'SQL',
           } as AdhocColumn;
+          temporalColumAdded = true;
+          return false; // Do not include this in the output; it's added separately
         }
-        return col;
+        return true;
       });
+
+      // So we ensure the temporal column is added first
+      if (temporalColum) {
+        columns = [temporalColum, ...columns];
+      }
     }
 
     const moreProps: Partial<QueryObject> = {};
@@ -128,9 +206,11 @@ const buildQuery: BuildQuery = (formData: any, options) => {
     let queryObject = {
       ...baseQueryObject,
       columns,
+      extras: !isEmpty(timeOffsets) && !temporalColum ? {} : extras,
       orderby,
       metrics,
       post_processing: postProcessing,
+      time_offsets: timeOffsets,
       ...moreProps,
     };
 
@@ -164,6 +244,7 @@ const buildQuery: BuildQuery = (formData: any, options) => {
         row_limit: 0,
         row_offset: 0,
         post_processing: [],
+        extras: undefined, // we don't need time grain here
         order_desc: undefined, // we don't need orderby stuff here,
         orderby: undefined, // because this query will be used for get total aggregation.
       });
@@ -181,6 +262,7 @@ const buildQuery: BuildQuery = (formData: any, options) => {
         { ...queryObject },
         {
           ...queryObject,
+          time_offsets: [],
           row_limit: 0,
           row_offset: 0,
           post_processing: [],
@@ -196,7 +278,7 @@ const buildQuery: BuildQuery = (formData: any, options) => {
 
 // Use this closure to cache changing of external filters, if we have server pagination we need reset page to 0, after
 // external filter changed
-export const cachedBuildQuery = (): BuildQuery => {
+export const cachedBuildQuery = (): BuildQuery<TableChartFormData> => {
   let cachedChanges: any = {};
   const setCachedChanges = (newChanges: any) => {
     cachedChanges = { ...cachedChanges, ...newChanges };

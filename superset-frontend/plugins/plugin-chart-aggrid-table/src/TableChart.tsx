@@ -17,16 +17,12 @@
  * under the License.
  */
 
-import { useState } from 'react';
+import { useMemo } from 'react';
 import { AgGridReact } from 'ag-grid-react';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-balham.css';
-import {
-  SizeColumnsToFitGridStrategy,
-  ColDef,
-  IAggFuncParams,
-} from 'ag-grid-community';
-import { ensureIsArray } from '@superset-ui/core';
+import { ColDef, SizeColumnsToFitGridStrategy } from 'ag-grid-community';
+import { ensureIsArray, t, styled } from '@superset-ui/core';
 
 const autoSizeStrategy = {
   type: 'fitGridWidth',
@@ -35,23 +31,102 @@ const autoSizeStrategy = {
 const pagination = true;
 const paginationPageSize = 100;
 const paginationPageSizeSelector = [100, 200, 500];
+const comparisonLabels = [t('Main'), '#', '△', '%'];
 
+const getCellStyle = (col, props, params) => {
+  let styles = {};
+  if (col.isNumeric) {
+    styles = { ...styles, textAlign: 'right' };
+  }
+  if (!col.isNumeric && !params.value) {
+    styles = { ...styles, color: 'gray' };
+  }
+  if (props.columnColorFormatters) {
+    const formatter = props.columnColorFormatters.find(
+      colorFormatter => colorFormatter.column === col.key,
+    );
+    if (formatter) {
+      styles = {
+        ...styles,
+        backgroundColor: formatter.getColorFromValue(params.value),
+      };
+    }
+  }
+  return styles;
+};
+
+const StyledContainer = styled.div`
+  text-align: left;
+  & .ag-column-drop-cell-button {
+    display: none;
+  }
+`;
+
+const defaultColDefs = {
+  filter: true,
+  aggFunc: 'sum',
+  flex: 1,
+};
 const TableChart = (props: any) => {
-  const [rowData, setRowData] = useState(props.data);
-  const [colDefs, setColDefs] = useState<ColDef[]>(
-    props.columns.map(col => ({
+  const rowData = useMemo(() => props.data, [props.data]);
+  const colDefs = useMemo<ColDef[]>(() => {
+    if (props.isUsingTimeComparison) {
+      return props.columns.reduce((acc, col) => {
+        if (col.isMetric) {
+          if (comparisonLabels.some(label => col.key.startsWith(`${label} `))) {
+            const [label, ...rest] = col.key.split(' ');
+            const group = acc.find(
+              colGroup => colGroup.headerName === rest.join(' '),
+            );
+            const config = {
+              field: col.key,
+              headerName: label,
+              valueFormatter: p => (p.value ? col.formatter?.(p.value) : 0),
+              columnGroupShow: label === comparisonLabels[0] ? null : 'open',
+              cellStyle: params => getCellStyle(col, props, params),
+            };
+            if (!group) {
+              acc.push({
+                headerName: rest.join(' '),
+                openByDefault: true,
+                marryChildren: true,
+                children: [config],
+              });
+            } else {
+              group.children.push(config);
+            }
+          }
+        } else {
+          acc.push({
+            field: col.key,
+            headerName: col.label,
+            valueFormatter: p =>
+              p.value ? col.formatter?.(p.value) : col.isNumeric ? 0 : 'N/A',
+            cellStyle: params => getCellStyle(col, props, params),
+          });
+        }
+        return acc;
+      }, []);
+    }
+    return props.columns.map((col, index) => ({
       field: col.key,
       headerName: col.label,
       valueFormatter: p => (p.value ? col.formatter?.(p.value) : 'N/A'),
-    })),
-  );
+      cellStyle: params => getCellStyle(col, props, params),
+      // pivot: index === 2,
+      // rowGroup: index === 0 || index === 1,
+      // aggFunc: index === 3 || index === 4 ? 'sum' : null,
+    }));
+  }, [props.columns]);
+
   console.log(props);
   return (
-    <div
+    <StyledContainer
       className="ag-theme-balham"
-      style={{ height: props.height, width: props.width, textAlign: 'left' }}
+      style={{ height: props.height, width: props.width }}
     >
       <AgGridReact
+        defaultColDef={defaultColDefs}
         rowData={rowData}
         columnDefs={colDefs}
         autoSizeStrategy={autoSizeStrategy as SizeColumnsToFitGridStrategy}
@@ -60,7 +135,6 @@ const TableChart = (props: any) => {
         paginationPageSizeSelector={paginationPageSizeSelector}
         pinnedBottomRowData={props.totals ? [props.totals] : []}
         onColumnMoved={e => {
-          // console.log(e);
           if (e.finished && e.toIndex) {
             const newCols = [...props.columns];
             const fromIndex = ensureIsArray(props.columns).findIndex(
@@ -76,7 +150,7 @@ const TableChart = (props: any) => {
           }
         }}
       />
-    </div>
+    </StyledContainer>
   );
 };
 

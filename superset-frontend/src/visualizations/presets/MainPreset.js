@@ -32,6 +32,7 @@ import RoseChartPlugin from '@superset-ui/legacy-plugin-chart-rose';
 import SankeyChartPlugin from '@superset-ui/legacy-plugin-chart-sankey';
 import TableChartPlugin from '@superset-ui/plugin-chart-table';
 import AgGridTableChartPlugin from '@superset-ui/plugin-chart-aggrid-table';
+import AgGridPivotTableChartPlugin from '@superset-ui/plugin-chart-aggrid-pivot';
 import { WordCloudChartPlugin } from '@superset-ui/plugin-chart-word-cloud';
 import WorldMapChartPlugin from '@superset-ui/legacy-plugin-chart-world-map';
 import {
@@ -179,6 +180,7 @@ export default class MainPreset extends Preset {
         new HandlebarsChartPlugin().configure({ key: 'handlebars' }),
         new EchartsBubbleChartPlugin().configure({ key: 'bubble_v2' }),
         new AgGridTableChartPlugin().configure({ key: 'aggrid_table' }),
+        new AgGridPivotTableChartPlugin().configure({ key: 'aggrid_pivot' }),
         ...experimentalPlugins,
       ],
     });
